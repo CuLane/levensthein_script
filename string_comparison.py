@@ -159,7 +159,7 @@ for match in matched_list:
         lower_strip(match["tenant"]["Zip Code"]),
         lower_strip(match["landlord"]["Zip Code"]),
     )
-    ratio = {
+    ratios = {
         "Tenant RITM": match["tenant"]["Number"],
         "Landlord RITM": match["landlord"]["Number"],
         "match_type": match["match_type"],
@@ -187,12 +187,19 @@ for match in matched_list:
         "tenant zip code": lower_strip(match["tenant"]["Zip Code"]),
         "landlord zip code": lower_strip(match["landlord"]["Zip Code"]),
         "zip code ratio": zip_code,
-        "Average": (
-            landlord_email + tenant_email + address_line + requested_for + tenant_email
+        #
+        "average": (
+            landlord_email
+            + tenant_email
+            + address_line
+            + requested_for
+            + tenant_email
+            + zip_code
+            + landlord_name
         )
-        / 5,
+        / 7,
     }
-    results.append(ratio)
+    results.append(ratios)
 
 results_df = pd.DataFrame(results)
 pp.pprint(f"{len(results)} potential matches found")
