@@ -1,59 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 import os
 import pprint
 
 import Levenshtein as lev
 import pandas as pd
 
-# Permanently changes the pandas settings
-pd.set_option("display.max_rows", None)
-pd.set_option("display.max_columns", None)
-# pd.set_option("display.width", None)
-# pd.set_option("display.max_colwidth", None)
-
 pp = pprint.PrettyPrinter(indent=4)
-current_directory = os.getcwd()
 
-
-def lower_strip(value):
-    return str(value).lower().strip()
-
-
-def color_negative_red(val):
-    """
-    Takes a scalar and returns a string with
-    the css property `'color: red'` for negative
-    strings, black otherwise.
-    """
-    color = "black"
-    try:
-        color = "red" if float(val) > 0.7 and float(val) <= 1 else "black"
-    except ValueError:
-        print("Not a float")
-    return "color: %s" % color
-
-
-landlords_path = f"{current_directory}/landlords.xlsx"
-
-landlords = pd.read_excel(landlords_path)
-
-print(f"{len(landlords)} Unmatched Landlord Ritms")
-
-tenants_path = f"{current_directory}/tenants.xlsx"
-
-tenants = pd.read_excel(tenants_path)
-print(f"{len(tenants)} Unmatched Tenant Ritms")
-
-
-# In[ ]:
-
-
-unmatched_ritms = [
+CURRENT_DIRECTORY = os.getcwd()
+RATIO_THRESHHOLD = 0.7
+OUTPUT_FILENAME = "matches.xlsx"
+LANDLORDS_FILENAME = "landlords.xlsx"
+TENANTS_FILENAME = "tenants.xlsx"
+UNMATCHED_RITMS = [
     "RITM0010464",
     "RITM0011926",
     "RITM0012780",
@@ -79,22 +40,47 @@ unmatched_ritms = [
     "RITM0049029",
 ]
 
+# Load data
+landlords_path = f"{CURRENT_DIRECTORY}/{LANDLORDS_FILENAME}"
+landlords = pd.read_excel(landlords_path)
+print(f"{len(landlords)} Unmatched Landlord RITMs")
 
-# In[ ]:
+tenants_path = f"{CURRENT_DIRECTORY}/{TENANTS_FILENAME}"
+tenants = pd.read_excel(tenants_path)
+print(f"{len(tenants)} Unmatched Tenant RITMs")
 
-
-filtered_tenants = tenants[tenants.Number.isin(unmatched_ritms)]
-
-# for column in landlords:
-#     print(column)
-# for column in tenants:
-#     print(column)
-
+filtered_tenants = tenants[tenants.Number.isin(UNMATCHED_RITMS)]
 matched_list = []
+results = []
 
+
+# Helper methods
+def lower_strip(value):
+    """
+    Takes a value and returns it as a string,
+    lowercased and stripped of extra whitespace
+    """
+    return str(value).lower().strip()
+
+
+def color_negative_red(val):
+    """
+    Takes a scalar and returns a string with
+    the css property `'color: red'` for ratios
+    greater than or equal to 0.7, black otherwise.
+    """
+    color = "black"
+    try:
+        color = "red" if float(val) >= RATIO_THRESHHOLD and float(val) <= 1 else "black"
+    except ValueError:
+        print("Not a float")
+    return "color: %s" % color
+
+
+# Prematch by comparing lower cased and trimmed values
 for i, landlord in landlords.iterrows():
     landlord_domain = ""
-    common_domains = ["gmail.com", "yahoo.com", "NaN", "nan", ""]
+    common_domains = ["gmail.com", "yahoo.com", "NaN", "nan", "aol.com"]
     if str("@") in str(landlord["Landlord Email"]):
         landlord_domain = lower_strip(landlord["Landlord Email"]).split("@")[1]
 
@@ -146,8 +132,7 @@ for i, landlord in landlords.iterrows():
             )
             continue
 
-
-results = []
+# Get Levenshtein Ratio for each match
 for match in matched_list:
     tenant_email = lev.ratio(
         lower_strip(match["tenant"]["Tenant Email"]),
@@ -204,20 +189,20 @@ for match in matched_list:
         #
         "average": (
             landlord_email
+            + landlord_name
             + tenant_email
             + address_line
             + requested_for
-            + tenant_email
             + zip_code
-            + landlord_name
         )
-        / 7,
+        / 6,
     }
     results.append(ratios)
 
+print(f"{len(results)} potential matches found")
+
 results_df = pd.DataFrame(results)
-pp.pprint(f"{len(results)} potential matches found")
 results_df = results_df.style.applymap(color_negative_red)
-results_df.to_excel("matches.xlsx")
+results_df.to_excel(OUTPUT_FILENAME)
 
 print("All done")
