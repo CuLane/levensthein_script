@@ -17,20 +17,36 @@ pd.set_option("display.max_columns", None)
 # pd.set_option("display.max_colwidth", None)
 
 pp = pprint.PrettyPrinter(indent=4)
-print(os.getcwd())
+current_directory = os.getcwd()
 
 
 def lower_strip(value):
     return str(value).lower().strip()
 
 
-landlords_path = "/Users/leo/Desktop/repos/deloitte/string_comparison/landlords.xlsx"
+def color_negative_red(val):
+    """
+    Takes a scalar and returns a string with
+    the css property `'color: red'` for negative
+    strings, black otherwise.
+    """
+    color = "black"
+    try:
+        print(float(val))
+
+        color = "red" if float(val) > 0.7 else "black"
+    except ValueError:
+        print("Not a float")
+    return "color: %s" % color
+
+
+landlords_path = f"{current_directory}/landlords.xlsx"
 
 landlords = pd.read_excel(landlords_path)
 
 print(f"{len(landlords)} Unmatched Landlord Ritms")
 
-tenants_path = "/Users/leo/Desktop/repos/deloitte/string_comparison/tenants.xlsx"
+tenants_path = f"{current_directory}/tenants.xlsx"
 
 tenants = pd.read_excel(tenants_path)
 print(f"{len(tenants)} Unmatched Tenant Ritms")
@@ -71,10 +87,10 @@ unmatched_ritms = [
 
 filtered_tenants = tenants[tenants.Number.isin(unmatched_ritms)]
 
-for column in landlords:
-    print(column)
-for column in tenants:
-    print(column)
+# for column in landlords:
+#     print(column)
+# for column in tenants:
+#     print(column)
 
 matched_list = []
 
@@ -203,5 +219,7 @@ for match in matched_list:
 
 results_df = pd.DataFrame(results)
 pp.pprint(f"{len(results)} potential matches found")
+results_df = results_df.style.applymap(color_negative_red)
 results_df.to_excel("matches.xlsx")
+
 print("All done")
