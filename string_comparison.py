@@ -32,9 +32,7 @@ def color_negative_red(val):
     """
     color = "black"
     try:
-        print(float(val))
-
-        color = "red" if float(val) > 0.7 else "black"
+        color = "red" if float(val) > 0.7 and float(val) <= 1 else "black"
     except ValueError:
         print("Not a float")
     return "color: %s" % color
