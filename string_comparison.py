@@ -2,18 +2,27 @@
 # coding: utf-8
 
 import os
-import pprint
 
 import Levenshtein as lev
 import pandas as pd
 
-pp = pprint.PrettyPrinter(indent=4)
 
+RATIO_THRESHHOLD = 0.7  # TODO Update threshold
 CURRENT_DIRECTORY = os.getcwd()
-RATIO_THRESHHOLD = 0.7
 OUTPUT_FILENAME = "matches.xlsx"
 LANDLORDS_FILENAME = "landlords.xlsx"
 TENANTS_FILENAME = "tenants.xlsx"
+LANDLORDS_PATH = f"{CURRENT_DIRECTORY}/{LANDLORDS_FILENAME}"
+TENANTS_PATH = f"{CURRENT_DIRECTORY}/{TENANTS_FILENAME}"
+COMMON_DOMAINS = [
+    "gmail.com",
+    "yahoo.com",
+    "aol.com",
+    "hotmail.com",
+    "outlook.com",
+    "Empty",
+]
+# Paste unmatched RITMs here.
 UNMATCHED_RITMS = [
     "RITM0010464",
     "RITM0011926",
@@ -41,12 +50,12 @@ UNMATCHED_RITMS = [
 ]
 
 # Load data
-landlords_path = f"{CURRENT_DIRECTORY}/{LANDLORDS_FILENAME}"
-landlords = pd.read_excel(landlords_path)
+landlords = pd.read_excel(LANDLORDS_PATH)
+landlords.fillna("Empty")
 print(f"{len(landlords)} Unmatched Landlord RITMs")
 
-tenants_path = f"{CURRENT_DIRECTORY}/{TENANTS_FILENAME}"
-tenants = pd.read_excel(tenants_path)
+tenants = pd.read_excel(TENANTS_PATH)
+tenants.fillna("Empty")
 print(f"{len(tenants)} Unmatched Tenant RITMs")
 
 filtered_tenants = tenants[tenants.Number.isin(UNMATCHED_RITMS)]
@@ -63,24 +72,27 @@ def lower_strip(value):
     return str(value).lower().strip()
 
 
-def color_negative_red(val):
+def color_red(val):
     """
     Takes a scalar and returns a string with
     the css property `'color: red'` for ratios
     greater than or equal to 0.7, black otherwise.
     """
-    color = "black"
     try:
         color = "red" if float(val) >= RATIO_THRESHHOLD and float(val) <= 1 else "black"
     except ValueError:
-        print("Not a float")
+        color = "black"
     return "color: %s" % color
 
 
-# Prematch by comparing lower cased and trimmed values
 for i, landlord in landlords.iterrows():
+    """
+    Prematch by comparing lower cased and
+    trimmed values.
+    """
     landlord_domain = ""
-    common_domains = ["gmail.com", "yahoo.com", "NaN", "nan", "aol.com"]
+    if (i + 1) % 100 == 0:
+        print(f"Checking landlord #{i + 1}")
     if str("@") in str(landlord["Landlord Email"]):
         landlord_domain = lower_strip(landlord["Landlord Email"]).split("@")[1]
 
@@ -98,33 +110,49 @@ for i, landlord in landlords.iterrows():
             landlord["Requested for"]
         ):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "requested for"}
+                {
+                    "tenant": tenant,
+                    "landlord": landlord,
+                    "match_type": "requested for",
+                }
             )
             continue
         elif lower_strip(tenant["Address line 1"]) == lower_strip(
             landlord["Address line 1"]
         ):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "address line 1"}
+                {
+                    "tenant": tenant,
+                    "landlord": landlord,
+                    "match_type": "address line 1",
+                }
             )
             continue
         elif lower_strip(tenant["Landlord Name"]) == lower_strip(
             landlord["Landlord Name"]
         ):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "landlord name"}
+                {
+                    "tenant": tenant,
+                    "landlord": landlord,
+                    "match_type": "landlord name",
+                }
             )
             continue
         elif lower_strip(tenant["Landlord Email"]) == lower_strip(
             landlord["Landlord Email"]
         ):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "landlord email"}
+                {
+                    "tenant": tenant,
+                    "landlord": landlord,
+                    "match_type": "landlord email",
+                }
             )
             continue
         elif (
-            landlord_domain not in common_domains
-            and landlord_domain != ""
+            landlord_domain not in COMMON_DOMAINS
+            and landlord_domain != "Empty"
             and tenant_domain == landlord_domain
         ):
             matched_list.append(
@@ -132,8 +160,11 @@ for i, landlord in landlords.iterrows():
             )
             continue
 
-# Get Levenshtein Ratio for each match
+
 for match in matched_list:
+    """
+    Get Levenshtein Ratio for each match
+    """
     tenant_email = lev.ratio(
         lower_strip(match["tenant"]["Tenant Email"]),
         lower_strip(match["landlord"]["Tenant Email"]),
@@ -189,10 +220,10 @@ for match in matched_list:
         #
         "average": (
             landlord_email
-            + landlord_name
             + tenant_email
-            + address_line
+            + landlord_name
             + requested_for
+            + address_line
             + zip_code
         )
         / 6,
@@ -202,7 +233,8 @@ for match in matched_list:
 print(f"{len(results)} potential matches found")
 
 results_df = pd.DataFrame(results)
-results_df = results_df.style.applymap(color_negative_red)
+results_df = results_df.style.applymap(color_red)
 results_df.to_excel(OUTPUT_FILENAME)
 
-print("All done")
+print(f"{OUTPUT_FILENAME} created at {CURRENT_DIRECTORY}.")
+print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
