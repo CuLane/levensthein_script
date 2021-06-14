@@ -59,6 +59,7 @@ tenants.fillna("Empty")
 print(f"{len(tenants)} Unmatched Tenant RITMs")
 
 filtered_tenants = tenants[tenants.Number.isin(UNMATCHED_RITMS)]
+print(f"Checking {len(filtered_tenants)} tenants for matches.")
 matched_list = []
 results = []
 
@@ -96,7 +97,10 @@ for i, landlord in landlords.iterrows():
         print(f"Checking landlord #{i + 1}")
     if str("@") in str(landlord["Landlord Email"]):
         landlord_domain = lower_strip(landlord["Landlord Email"]).split("@")[1]
-
+    if str("@") in str(landlord["Tenant Email"]):
+        landlord_tenant_domain = lower_strip(landlord["Tenant Email"]).split("@")[1]
+        # 
+        # 
     for ii, tenant in filtered_tenants.iterrows():
         tenant_landlord_domain = ""
         tenant_domain = ""  #
@@ -104,7 +108,6 @@ for i, landlord in landlords.iterrows():
             tenant_landlord_domain = lower_strip(tenant["Landlord Email"]).split("@")[1]
         if str("@") in str(tenant["Tenant Email"]):
             tenant_domain = lower_strip(tenant["Tenant Email"]).split("@")[1]
-
         if lower_strip(tenant["Tenant Email"]) == lower_strip(landlord["Tenant Email"]):
             matched_list.append(
                 {"tenant": tenant, "landlord": landlord, "match_type": "Email"}
@@ -191,8 +194,8 @@ for match in matched_list:
         lower_strip(match["landlord"]["Landlord Email"]),
     )
     zip_code = lev.ratio(
-        lower_strip(match["tenant"]["Zip Code"]),
-        lower_strip(match["landlord"]["Zip Code"]),
+        lower_strip(int(match["tenant"]["Zip Code"])),
+        lower_strip(int(match["landlord"]["Zip Code"])),
     )
     ratios = {
         "Tenant RITM": match["tenant"]["Number"],
@@ -209,7 +212,7 @@ for match in matched_list:
         #
         "Tenant address": f"{lower_strip(match['tenant']['Address line 1'])} {lower_strip(match['tenant']['Address line 2'])}",
         "Landlord Address": f"{lower_strip(match['landlord']['Address line 1'])} {lower_strip(match['landlord']['Address line 2'])}",
-        "Address line 1_2 ratio": address_line,
+        "Address line ratio": address_line,
         #
         "Tenant requested for": lower_strip(match["tenant"]["Requested for"]),
         "Landlord requested for": lower_strip(match["landlord"]["Requested for"]),
@@ -219,19 +222,21 @@ for match in matched_list:
         "landlord name": lower_strip(match["landlord"]["Landlord Name"]),
         "Landlord Name ratio": landlord_name,
         #
-        "tenant zip code": lower_strip(match["tenant"]["Zip Code"]),
-        "landlord zip code": lower_strip(match["landlord"]["Zip Code"]),
+        "tenant zip code": int(lower_strip(int(match["tenant"]["Zip Code"]))),
+        "landlord zip code": int(lower_strip(int(match["landlord"]["Zip Code"]))),
         "zip code ratio": zip_code,
         #
-        "average": (
-            landlord_email
-            + tenant_email
-            + landlord_name
-            + requested_for
-            + address_line
-            + zip_code
-        )
-        / 6,
+        "average": "{:.2f}".format(
+            (
+                landlord_email
+                + tenant_email
+                + landlord_name
+                + requested_for
+                + address_line
+                + zip_code
+            )
+            / 6
+        ),
     }
     results.append(ratios)
 
@@ -241,9 +246,10 @@ results_df = pd.DataFrame(results)
 results_df = results_df.style.applymap(color_red)
 results_df.to_excel(OUTPUT_FILENAME)
 
-print(f"{OUTPUT_FILENAME} created at {CURRENT_DIRECTORY}.")
+print(f"{OUTPUT_FILENAME} file created at {CURRENT_DIRECTORY}.")
 print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
 
 
 # make domain check check for both landlord domain and tenant domain
 # sort by ritm tenant number, then by overall ratio
+# Make the output file a command line argument
