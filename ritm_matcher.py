@@ -91,15 +91,19 @@ for i, landlord in landlords.iterrows():
     trimmed values.
     """
     landlord_domain = ""
+    landlord_tenant_domain = ""  #
     if (i + 1) % 100 == 0:
         print(f"Checking landlord #{i + 1}")
     if str("@") in str(landlord["Landlord Email"]):
         landlord_domain = lower_strip(landlord["Landlord Email"]).split("@")[1]
 
     for ii, tenant in filtered_tenants.iterrows():
-        tenant_domain = ""
+        tenant_landlord_domain = ""
+        tenant_domain = ""  #
         if str("@") in str(tenant["Landlord Email"]):
-            tenant_domain = lower_strip(tenant["Landlord Email"]).split("@")[1]
+            tenant_landlord_domain = lower_strip(tenant["Landlord Email"]).split("@")[1]
+        if str("@") in str(tenant["Tenant Email"]):
+            tenant_domain = lower_strip(tenant["Tenant Email"]).split("@")[1]
 
         if lower_strip(tenant["Tenant Email"]) == lower_strip(landlord["Tenant Email"]):
             matched_list.append(
@@ -153,7 +157,8 @@ for i, landlord in landlords.iterrows():
         elif (
             landlord_domain not in COMMON_DOMAINS
             and landlord_domain != "Empty"
-            and tenant_domain == landlord_domain
+            and tenant_landlord_domain == landlord_domain
+            and landlord_tenant_domain == tenant_domain
         ):
             matched_list.append(
                 {"tenant": tenant, "landlord": landlord, "match_type": "domain"}
@@ -238,3 +243,7 @@ results_df.to_excel(OUTPUT_FILENAME)
 
 print(f"{OUTPUT_FILENAME} created at {CURRENT_DIRECTORY}.")
 print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
+
+
+# make domain check check for both landlord domain and tenant domain
+# sort by ritm tenant number, then by overall ratio
