@@ -99,8 +99,8 @@ for i, landlord in landlords.iterrows():
         landlord_domain = lower_strip(landlord["Landlord Email"]).split("@")[1]
     if str("@") in str(landlord["Tenant Email"]):
         landlord_tenant_domain = lower_strip(landlord["Tenant Email"]).split("@")[1]
-        # 
-        # 
+        #
+        #
     for ii, tenant in filtered_tenants.iterrows():
         tenant_landlord_domain = ""
         tenant_domain = ""  #
@@ -199,34 +199,34 @@ for match in matched_list:
     )
     ratios = {
         "Tenant RITM": match["tenant"]["Number"],
-        "Landlord RITM": match["landlord"]["Number"],
-        "match_type": match["match_type"],
+        "LL RITM": match["landlord"]["Number"],
+        "Match Type": match["match_type"],
         #
-        "tenant_landlord_email": match["tenant"]["Landlord Email"],
-        "landlord_email": match["landlord"]["Landlord Email"],
-        "Landlord Email ratio": landlord_email,
+        "Tenant Name (Tenant)": lower_strip(match["tenant"]["Requested for"]),
+        "Tenant Name (LL)": lower_strip(match["landlord"]["Requested for"]),
+        "Tenant Name Comparison": requested_for,
         #
-        "tenant_email": match["tenant"]["Tenant Email"],
-        "landlord_tenant_email": match["landlord"]["Tenant Email"],
-        "Tenant Email ratio": tenant_email,
+        "Tenant Address 1 + 2 (Tenant)": f"{lower_strip(match['tenant']['Address line 1'])} {lower_strip(match['tenant']['Address line 2'])}",
+        "Tenant Address 1 + 2 (LL)": f"{lower_strip(match['landlord']['Address line 1'])} {lower_strip(match['landlord']['Address line 2'])}",
+        "Address Line Comparison": address_line,
         #
-        "Tenant address": f"{lower_strip(match['tenant']['Address line 1'])} {lower_strip(match['tenant']['Address line 2'])}",
-        "Landlord Address": f"{lower_strip(match['landlord']['Address line 1'])} {lower_strip(match['landlord']['Address line 2'])}",
-        "Address line ratio": address_line,
+        "Tenant Zip Code (Tenant)": lower_strip(int(match["tenant"]["Zip Code"])),
+        "Tenant Zip Code (LL)": lower_strip(int(match["landlord"]["Zip Code"])),
+        "Tenant Zip Code Comparison": zip_code,
         #
-        "Tenant requested for": lower_strip(match["tenant"]["Requested for"]),
-        "Landlord requested for": lower_strip(match["landlord"]["Requested for"]),
-        "Requested for ratio": requested_for,
+        "Tenant Email (Tenant)": match["tenant"]["Tenant Email"],
+        "Tenant Email (LL)": match["landlord"]["Tenant Email"],
+        "Tenant Email Comparison": tenant_email,
         #
-        "tenant landlord name": lower_strip(match["tenant"]["Landlord Name"]),
-        "landlord name": lower_strip(match["landlord"]["Landlord Name"]),
-        "Landlord Name ratio": landlord_name,
+        "Landlord Name (Tenant)": lower_strip(match["tenant"]["Landlord Name"]),
+        "Landlord Name (LL)": lower_strip(match["landlord"]["Landlord Name"]),
+        "Landlord Name Comparison": landlord_name,
         #
-        "tenant zip code": int(lower_strip(int(match["tenant"]["Zip Code"]))),
-        "landlord zip code": int(lower_strip(int(match["landlord"]["Zip Code"]))),
-        "zip code ratio": zip_code,
+        "Landlord Email (Tenant)": match["tenant"]["Landlord Email"],
+        "Landlord Email (LL)": match["landlord"]["Landlord Email"],
+        "Landlord Email Comparison": landlord_email,
         #
-        "average": "{:.2f}".format(
+        "Comparison Average": "{:.2f}".format(
             (
                 landlord_email
                 + tenant_email
@@ -253,3 +253,5 @@ print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
 # make domain check check for both landlord domain and tenant domain
 # sort by ritm tenant number, then by overall ratio
 # Make the output file a command line argument
+# Update columns
+# verify zip fields
