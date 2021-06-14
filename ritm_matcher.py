@@ -85,6 +85,15 @@ def color_red(val):
         color = "black"
     return "color: %s" % color
 
+def if_float(match, ll_email_ratio):
+    """
+    returns the lev ratio unless landlord email isn't a string, 
+    then it returns 0
+    """
+    if not isinstance(match["tenant"]["Landlord Email"], str):
+        return 0 
+    else:
+        return ll_email_ratio
 
 for i, landlord in landlords.iterrows():
     """
@@ -108,9 +117,12 @@ for i, landlord in landlords.iterrows():
             tenant_landlord_domain = lower_strip(tenant["Landlord Email"]).split("@")[1]
         if str("@") in str(tenant["Tenant Email"]):
             tenant_domain = lower_strip(tenant["Tenant Email"]).split("@")[1]
+
+
+
         if lower_strip(tenant["Tenant Email"]) == lower_strip(landlord["Tenant Email"]):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "Email"}
+                {"tenant": tenant, "landlord": landlord, "match_type": "tenant email"}
             )
             continue
         elif lower_strip(tenant["Requested for"]) == lower_strip(
@@ -158,13 +170,13 @@ for i, landlord in landlords.iterrows():
             )
             continue
         elif (
-            landlord_domain not in COMMON_DOMAINS
+            landlord_domain not in COMMON_DOMAINS and tenant_domain not in COMMON_DOMAINS
             and landlord_domain != "Empty"
             and tenant_landlord_domain == landlord_domain
             and landlord_tenant_domain == tenant_domain
         ):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "domain"}
+                {"tenant": tenant, "landlord": landlord, "match_type": "t + ll email domain"}
             )
             continue
 
@@ -224,7 +236,7 @@ for match in matched_list:
         #
         "Landlord Email (Tenant)": match["tenant"]["Landlord Email"],
         "Landlord Email (LL)": match["landlord"]["Landlord Email"],
-        "Landlord Email Comparison": landlord_email,
+        "Landlord Email Comparison": if_float(match, landlord_email),
         #
         "Comparison Average": "{:.2f}".format(
             (
