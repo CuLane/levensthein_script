@@ -85,15 +85,17 @@ def color_red(val):
         color = "black"
     return "color: %s" % color
 
+
 def if_float(match, ll_email_ratio):
     """
-    returns the lev ratio unless landlord email isn't a string, 
+    returns the lev ratio unless landlord email isn't a string,
     then it returns 0
     """
     if not isinstance(match["tenant"]["Landlord Email"], str):
-        return 0 
+        return 0
     else:
         return ll_email_ratio
+
 
 for i, landlord in landlords.iterrows():
     """
@@ -118,11 +120,9 @@ for i, landlord in landlords.iterrows():
         if str("@") in str(tenant["Tenant Email"]):
             tenant_domain = lower_strip(tenant["Tenant Email"]).split("@")[1]
 
-
-
         if lower_strip(tenant["Tenant Email"]) == lower_strip(landlord["Tenant Email"]):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "tenant email"}
+                {"tenant": tenant, "landlord": landlord, "match_type": "Tenant Email"}
             )
             continue
         elif lower_strip(tenant["Requested for"]) == lower_strip(
@@ -132,7 +132,22 @@ for i, landlord in landlords.iterrows():
                 {
                     "tenant": tenant,
                     "landlord": landlord,
-                    "match_type": "requested for",
+                    "match_type": "Requested For",
+                }
+            )
+            continue
+        elif (
+            landlord_domain not in COMMON_DOMAINS
+            and tenant_domain not in COMMON_DOMAINS
+            and landlord_domain != "Empty"
+            and tenant_landlord_domain == landlord_domain
+            and landlord_tenant_domain == tenant_domain
+        ):
+            matched_list.append(
+                {
+                    "tenant": tenant,
+                    "landlord": landlord,
+                    "match_type": "t + ll email domain",
                 }
             )
             continue
@@ -147,17 +162,6 @@ for i, landlord in landlords.iterrows():
                 }
             )
             continue
-        elif lower_strip(tenant["Landlord Name"]) == lower_strip(
-            landlord["Landlord Name"]
-        ):
-            matched_list.append(
-                {
-                    "tenant": tenant,
-                    "landlord": landlord,
-                    "match_type": "landlord name",
-                }
-            )
-            continue
         elif lower_strip(tenant["Landlord Email"]) == lower_strip(
             landlord["Landlord Email"]
         ):
@@ -169,16 +173,24 @@ for i, landlord in landlords.iterrows():
                 }
             )
             continue
-        elif (
-            landlord_domain not in COMMON_DOMAINS and tenant_domain not in COMMON_DOMAINS
-            and landlord_domain != "Empty"
-            and tenant_landlord_domain == landlord_domain
-            and landlord_tenant_domain == tenant_domain
+        elif lower_strip(tenant["Landlord Name"]) == lower_strip(
+            landlord["Landlord Name"]
         ):
             matched_list.append(
-                {"tenant": tenant, "landlord": landlord, "match_type": "t + ll email domain"}
+                {
+                    "tenant": tenant,
+                    "landlord": landlord,
+                    "match_type": "Landlord Name",
+                }
             )
             continue
+
+
+def remove_nan(value):
+    if not isinstance(value, str) or value == 'nan':
+        return ""
+    else:
+        return value
 
 
 for match in matched_list:
@@ -215,11 +227,11 @@ for match in matched_list:
         "Match Type": match["match_type"],
         #
         "Tenant Name (Tenant)": lower_strip(match["tenant"]["Requested for"]),
-        "Tenant Name (LL)": lower_strip(match["landlord"]["Requested for"]),
+        "Tenant Name (LL)": f"{lower_strip(match['landlord']['Tenant first name'])} {lower_strip(match['landlord']['Tenant last name'])}",
         "Tenant Name Comparison": requested_for,
         #
-        "Tenant Address 1 + 2 (Tenant)": f"{lower_strip(match['tenant']['Address line 1'])} {lower_strip(match['tenant']['Address line 2'])}",
-        "Tenant Address 1 + 2 (LL)": f"{lower_strip(match['landlord']['Address line 1'])} {lower_strip(match['landlord']['Address line 2'])}",
+        "Tenant Address 1 + 2 (Tenant)": f"{lower_strip(match['tenant']['Address line 1'])} {remove_nan(lower_strip(match['tenant']['Address line 2']))}",
+        "Tenant Address 1 + 2 (LL)": f"{lower_strip(match['landlord']['Address line 1'])} {remove_nan(lower_strip(match['landlord']['Address line 2']))}",
         "Address Line Comparison": address_line,
         #
         "Tenant Zip Code (Tenant)": lower_strip(int(match["tenant"]["Zip Code"])),
