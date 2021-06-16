@@ -2,11 +2,13 @@
 # coding: utf-8
 
 import os
+import time
 
 import Levenshtein as lev
 import pandas as pd
 
 
+# print(start_time)
 RATIO_THRESHHOLD = 0.7  # TODO Update threshold
 CURRENT_DIRECTORY = os.getcwd()
 OUTPUT_FILENAME = "matches.xlsx"
@@ -24,7 +26,7 @@ COMMON_DOMAINS = [
 ]
 # Paste unmatched RITMs here.
 UNMATCHED_RITMS = [
-"RITM0010108",
+    "RITM0010108",
 "RITM0010123",
 "RITM0010131",
 "RITM0010138",
@@ -692,15 +694,24 @@ def color_red(val):
     return "color: %s" % color
 
 
-def if_float(match, ll_email_ratio):
+def if_float(value, ratio):
     """
-    returns the lev ratio unless landlord email isn't a string,
+    returns the lev ratio unless one or more of the 
+    parameters passed isn't a string,
     then it returns 0
     """
-    if not isinstance(match["tenant"]["Landlord Email"], str):
-        return 0
+    any_blanks = False
+    for i in value:
+        if not isinstance(i, str) or i == "":
+            any_blanks = True
+    return 0 if any_blanks else ratio
+
+
+def remove_nan(value):
+    if not isinstance(value, str) or value == "nan":
+        return ""
     else:
-        return ll_email_ratio
+        return value
 
 
 for i, landlord in landlords.iterrows():
@@ -731,7 +742,10 @@ for i, landlord in landlords.iterrows():
                 {"tenant": tenant, "landlord": landlord, "match_type": "Tenant Email"}
             )
             continue
-        elif lower_strip(tenant["Requested for"]) ==  f"{lower_strip(landlord['Tenant first name'])} {lower_strip(landlord['Tenant last name'])}":
+        elif (
+            lower_strip(tenant["Requested for"])
+            == f"{lower_strip(landlord['Tenant first name'])} {lower_strip(landlord['Tenant last name'])}"
+        ):
             matched_list.append(
                 {
                     "tenant": tenant,
@@ -777,25 +791,17 @@ for i, landlord in landlords.iterrows():
                 }
             )
             continue
-        elif lower_strip(tenant["Landlord Name"]) == lower_strip(
-            landlord["Landlord Name"]
-        ):
-            matched_list.append(
-                {
-                    "tenant": tenant,
-                    "landlord": landlord,
-                    "match_type": "Landlord Name",
-                }
-            )
-            continue
-
-
-def remove_nan(value):
-    if not isinstance(value, str) or value == 'nan':
-        return ""
-    else:
-        return value
-
+        # elif lower_strip(tenant["Landlord Name"]) == lower_strip(
+        #     landlord["Landlord Name"]
+        # ):
+        #     matched_list.append(
+        #         {
+        #             "tenant": tenant,
+        #             "landlord": landlord,
+        #             "match_type": "Landlord Name",
+        #         }
+        #     )
+        #     continue
 
 for match in matched_list:
     """
@@ -809,7 +815,7 @@ for match in matched_list:
         f"{lower_strip(match['tenant']['Address line 1'])} {lower_strip(match['tenant']['Address line 2'])}",
         f"{lower_strip(match['landlord']['Address line 1'])} {lower_strip(match['landlord']['Address line 2'])}",
     )
-    requested_for = lev.ratio(
+    tenant_name = lev.ratio(
         remove_nan(lower_strip(match["tenant"]["Requested for"])),
         f"{remove_nan(lower_strip(match['landlord']['Tenant first name']))} {remove_nan(lower_strip(match['landlord']['Tenant last name']))}",
     )
@@ -821,49 +827,64 @@ for match in matched_list:
         lower_strip(match["tenant"]["Landlord Email"]),
         lower_strip(match["landlord"]["Landlord Email"]),
     )
-    zip_code = lev.ratio(
-        lower_strip(int(match["tenant"]["Zip Code"])),
-        lower_strip(int(match["landlord"]["Zip Code"])),
-    )
+    # zip_code = lev.ratio(
+    #     lower_strip(int(match["tenant"]["Zip Code"])),
+    #     lower_strip(int(match["landlord"]["Zip Code"])),
+    # )
     ratios = {
         "Tenant RITM": match["tenant"]["Number"],
         "LL RITM": match["landlord"]["Number"],
         "Match Type": match["match_type"],
         #
-        "Tenant Name (Tenant)": remove_nan(lower_strip(match["tenant"]["Requested for"])),
+        "Tenant Name (Tenant)": remove_nan(
+            lower_strip(match["tenant"]["Requested for"])
+        ),
         "Tenant Name (LL)": f"{remove_nan(lower_strip(match['landlord']['Tenant first name']))} {remove_nan(lower_strip(match['landlord']['Tenant last name']))}",
-        "Tenant Name Comparison": requested_for,
+        "Tenant Name Comparison": tenant_name,
         #
         "Tenant Address 1 + 2 (Tenant)": f"{lower_strip(match['tenant']['Address line 1'])} {remove_nan(lower_strip(match['tenant']['Address line 2']))}",
         "Tenant Address 1 + 2 (LL)": f"{lower_strip(match['landlord']['Address line 1'])} {remove_nan(lower_strip(match['landlord']['Address line 2']))}",
         "Address Line Comparison": address_line,
         #
-        "Tenant Zip Code (Tenant)": lower_strip(int(match["tenant"]["Zip Code"])),
-        "Tenant Zip Code (LL)": lower_strip(int(match["landlord"]["Zip Code"])),
-        "Tenant Zip Code Comparison": zip_code,
+        # "Tenant Zip Code (Tenant)": lower_strip(int(match["tenant"]["Zip Code"])),
+        # "Tenant Zip Code (LL)": lower_strip(int(match["landlord"]["Zip Code"])),
+        # "Tenant Zip Code Comparison": zip_code,
         #
         "Tenant Email (Tenant)": match["tenant"]["Tenant Email"],
         "Tenant Email (LL)": match["landlord"]["Tenant Email"],
         "Tenant Email Comparison": tenant_email,
         #
-        "Landlord Name (Tenant)": remove_nan(lower_strip(match["tenant"]["Landlord Name"])),
-        "Landlord Name (LL)": remove_nan(lower_strip(match["landlord"]["Landlord Name"])),
-        "Landlord Name Comparison": landlord_name,
+        "Landlord Name (Tenant)": remove_nan(
+            lower_strip(match["tenant"]["Landlord Name"])
+        ),
+        "Landlord Name (LL)": remove_nan(
+            lower_strip(match["landlord"]["Landlord Name"])
+        ),
+        "Landlord Name Comparison": if_float(
+            [lower_strip(match["tenant"]["Landlord Name"]), lower_strip(match["landlord"]["Landlord Name"])], landlord_name
+        ),
         #
         "Landlord Email (Tenant)": match["tenant"]["Landlord Email"],
         "Landlord Email (LL)": match["landlord"]["Landlord Email"],
-        "Landlord Email Comparison": if_float(match, landlord_email),
-        #
-        "Comparison Average": "{:.2f}".format(
-            (
-                landlord_email
-                + tenant_email
-                + landlord_name
-                + requested_for
-                + address_line
-                + zip_code
+        "Landlord Email Comparison": if_float(
+            [match["tenant"]["Landlord Email"], match["landlord"]["Landlord Email"]],
+            landlord_email,
+        ),
+        # TODO this is why i cant compare string vs float
+        "Match Score": "{:.2f}".format(
+            float(
+                (tenant_email * 3)
+                + (tenant_name * 2.5)
+                + (address_line * 1.5)
+                + (landlord_name * 1.5)
+                + (landlord_email * 1.5)
             )
-            / 6
+            # landlord_email
+            # + tenant_email
+            # + landlord_name
+            # + tenant_name
+            # + address_line
+            # + zip_code
         ),
     }
     results.append(ratios)
@@ -871,11 +892,17 @@ for match in matched_list:
 print(f"{len(results)} potential matches found")
 
 results_df = pd.DataFrame(results)
+# results_df["Match Score"].apply(lambda x: float(x))
+# results_df.loc[(results_df["Match Score"]) >= 7.5]
+# results_df.query('Match Score >= 7.5')
+# results_df[(float(results_df['Match Score']) >= 7.5)]
+# results_df['Match Score'].apply(lambda x: float(x))
 results_df = results_df.style.applymap(color_red)
+
 results_df.to_excel(OUTPUT_FILENAME)
 
 print(f"{OUTPUT_FILENAME} file created at {CURRENT_DIRECTORY}.")
 print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
+# print(time.clock() - start_time, "seconds")
 
 # TODO Make the output filename a command line argument.
-
