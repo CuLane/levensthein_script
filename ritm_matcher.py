@@ -12,6 +12,7 @@ import pandas as pd
 THRESHOLD = 7.5
 CURRENT_DIRECTORY = os.getcwd()
 OUTPUT_FILENAME = "matches.xlsx"
+UNFILTERED_FILENAME = "unfiltered.xlsx"
 LANDLORDS_FILENAME = "landlords.xlsx"
 TENANTS_FILENAME = "tenants.xlsx"
 LANDLORDS_PATH = f"{CURRENT_DIRECTORY}/{LANDLORDS_FILENAME}"
@@ -262,6 +263,8 @@ for match in matched_list:
 
 
 results_df = pd.DataFrame(results)
+print(f"{len(results_df)} potential matches found before filtering.")
+unfiltered = results_df
 results_df = results_df.loc[(results_df["Match Score"]) >= 7.5]
 # ritm_list = results_df[""].tolist()
 
@@ -271,9 +274,22 @@ results_df["Tenant Multiple Matches"] = results_df.duplicated(
 results_df["LL Multiple Matches"] = results_df.duplicated(
     subset=["LL RITM"], keep=False
 )
+unfiltered["Tenant Multiple Matches"] = unfiltered.duplicated(
+    subset=["Tenant RITM"], keep=False
+)
+unfiltered["LL Multiple Matches"] = unfiltered.duplicated(
+    subset=["LL RITM"], keep=False
+)
+
 print(f"{len(results_df)} potential matches found.")
+
+results_df = results_df.sort_values(by=['Tenant RITM', 'Match Score'], ascending=[True, False])
+unfiltered = unfiltered.sort_values(by=['Tenant RITM', 'Match Score'], ascending=[True, False])
+
+unfiltered = unfiltered.style.applymap(color_red)
 results_df = results_df.style.applymap(color_red)
 results_df.to_excel(OUTPUT_FILENAME)
+unfiltered.to_excel(UNFILTERED_FILENAME)
 print(f"{OUTPUT_FILENAME} file created at {CURRENT_DIRECTORY}.")
 print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
 # print(time.clock() - start_time, "seconds")
