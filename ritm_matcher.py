@@ -2,7 +2,7 @@
 # coding: utf-8
 
 import os
-import time
+import datetime
 
 import Levenshtein as lev
 import pandas as pd
@@ -55,10 +55,16 @@ def color_red(val):
     greater than or equal to THRESHOLD / 10,
     black otherwise.
     """
-    try:
-        color = "red" if float(val) >= THRESHOLD / 10 and float(val) <= 1 else "black"
-    except ValueError:
-        color = "black"
+    color = "black"
+    if isinstance(val, datetime.datetime):
+        pass
+    else:
+        try:
+            color = (
+                "red" if float(val) >= THRESHOLD / 10 and float(val) <= 1 else "black"
+            )
+        except ValueError:
+            color = "black"
     return "color: %s" % color
 
 
@@ -277,11 +283,9 @@ unfiltered = unfiltered.sort_values(
     by=["Tenant RITM", "Match Score"], ascending=[True, False]
 )
 
-unfiltered = unfiltered.style.applymap(color_red)
 results_df = results_df.style.applymap(color_red)
 with pd.ExcelWriter(OUTPUT_FILENAME) as writer:
     results_df.to_excel(writer, sheet_name="Filtered", index=False)
-    unfiltered.to_excel(writer, sheet_name="Unfiltered", index=False)
 
 print(f"{OUTPUT_FILENAME} file created at {CURRENT_DIRECTORY}.")
 print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
