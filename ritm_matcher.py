@@ -12,7 +12,6 @@ import pandas as pd
 THRESHOLD = 7.5
 CURRENT_DIRECTORY = os.getcwd()
 OUTPUT_FILENAME = "matches.xlsx"
-UNFILTERED_FILENAME = "unfiltered.xlsx"
 LANDLORDS_FILENAME = "landlords.xlsx"
 TENANTS_FILENAME = "tenants.xlsx"
 LANDLORDS_PATH = f"{CURRENT_DIRECTORY}/{LANDLORDS_FILENAME}"
@@ -25,24 +24,17 @@ COMMON_DOMAINS = [
     "outlook.com",
     "Empty",
 ]
-# Paste unmatched RITMs here.
-# UNMATCHED_RITMS = [
 
-
-# ]
-
-# Load data
 landlords = pd.read_excel(LANDLORDS_PATH)
-landlords.fillna("Empty")
+# landlords.fillna("Empty")
 print(f"{len(landlords)} Unmatched Landlord RITMs")
 
 tenants = pd.read_excel(TENANTS_PATH)
-tenants.fillna("Empty")
+# tenants.fillna("Empty")
 print(f"{len(tenants)} Unmatched Tenant RITMs")
 
-# filtered_tenants = tenants[tenants.Number.isin(UNMATCHED_RITMS)]
-filtered_tenants = tenants
-print(f"Checking {len(filtered_tenants)} tenants for matches.")
+# tenants = tenants[tenants.Number.isin(UNMATCHED_RITMS)]
+print(f"Checking {len(tenants)} tenants for matches.")
 matched_list = []
 results = []
 
@@ -60,7 +52,8 @@ def color_red(val):
     """
     Takes a scalar and returns a string with
     the css property `'color: red'` for ratios
-    greater than or equal to 0.7, black otherwise.
+    greater than or equal to THRESHOLD / 10,
+    black otherwise.
     """
     try:
         color = "red" if float(val) >= THRESHOLD / 10 and float(val) <= 1 else "black"
@@ -69,7 +62,7 @@ def color_red(val):
     return "color: %s" % color
 
 
-def if_float(values, ratio):
+def sanitize_data(values, ratio):
     """
     returns the lev ratio unless one or more of the
     parameters passed isn't a string,
@@ -103,7 +96,7 @@ for i, landlord in landlords.iterrows():
         landlord_tenant_domain = lower_strip(landlord["Tenant Email"]).split("@")[1]
         #
         #
-    for ii, tenant in filtered_tenants.iterrows():
+    for ii, tenant in tenants.iterrows():
         tenant_landlord_domain = ""
         tenant_domain = ""  #
         if str("@") in str(tenant["Landlord Email"]):
@@ -165,17 +158,17 @@ for i, landlord in landlords.iterrows():
                 }
             )
             continue
-        # elif lower_strip(tenant["Landlord Name"]) == lower_strip(
-        #     landlord["Landlord Name"]
-        # ):
-        #     matched_list.append(
-        #         {
-        #             "tenant": tenant,
-        #             "landlord": landlord,
-        #             "match_type": "Landlord Name",
-        #         }
-        #     )
-        #     continue
+        elif lower_strip(tenant["Landlord Name"]) == lower_strip(
+            landlord["Landlord Name"]
+        ):
+            matched_list.append(
+                {
+                    "tenant": tenant,
+                    "landlord": landlord,
+                    "match_type": "Landlord Name",
+                }
+            )
+            continue
 
 for match in matched_list:
     """
@@ -197,7 +190,7 @@ for match in matched_list:
         lower_strip(match["tenant"]["Landlord Name"]),
         lower_strip(match["landlord"]["Landlord Name"]),
     )
-    landlord_name = if_float(
+    landlord_name = sanitize_data(
         [
             lower_strip(match["tenant"]["Landlord Name"]),
             lower_strip(match["landlord"]["Landlord Name"]),
@@ -208,10 +201,6 @@ for match in matched_list:
         lower_strip(match["tenant"]["Landlord Email"]),
         lower_strip(match["landlord"]["Landlord Email"]),
     )
-    # zip_code = lev.ratio(
-    #     lower_strip(int(match["tenant"]["Zip Code"])),
-    #     lower_strip(int(match["landlord"]["Zip Code"])),
-    # )
     ratios = {
         "Tenant RITM": match["tenant"]["Number"],
         "LL RITM": match["landlord"]["Number"],
@@ -230,10 +219,6 @@ for match in matched_list:
         "Tenant Address 1 + 2 (LL)": f"{lower_strip(match['landlord']['Address line 1'])} {remove_nan(lower_strip(match['landlord']['Address line 2']))}",
         "Address Line Comparison": address_line,
         #
-        # "Tenant Zip Code (Tenant)": lower_strip(int(match["tenant"]["Zip Code"])),
-        # "Tenant Zip Code (LL)": lower_strip(int(match["landlord"]["Zip Code"])),
-        # "Tenant Zip Code Comparison": zip_code,
-        #
         "Tenant Email (Tenant)": match["tenant"]["Tenant Email"],
         "Tenant Email (LL)": match["landlord"]["Tenant Email"],
         "Tenant Email Comparison": tenant_email,
@@ -244,11 +229,11 @@ for match in matched_list:
         #
         "Landlord Email (Tenant)": match["tenant"]["Landlord Email"],
         "Landlord Email (LL)": match["landlord"]["Landlord Email"],
-        "Landlord Email Comparison": if_float(
+        "Landlord Email Comparison": sanitize_data(
             [match["tenant"]["Landlord Email"], match["landlord"]["Landlord Email"]],
             landlord_email,
         ),
-        # TODO this is why i cant compare string vs float
+        #
         "Match Score": float(
             "{:.2f}".format(
                 (tenant_email * 3)
@@ -258,6 +243,8 @@ for match in matched_list:
                 + (landlord_email * 1.5)
             )
         ),
+        # Created
+        "Created": match["tenant"]["Created"],
     }
     results.append(ratios)
 
@@ -283,15 +270,22 @@ unfiltered["LL Multiple Matches"] = unfiltered.duplicated(
 
 print(f"{len(results_df)} potential matches found.")
 
-results_df = results_df.sort_values(by=['Tenant RITM', 'Match Score'], ascending=[True, False])
-unfiltered = unfiltered.sort_values(by=['Tenant RITM', 'Match Score'], ascending=[True, False])
+results_df = results_df.sort_values(
+    by=["Tenant RITM", "Match Score"], ascending=[True, False]
+)
+unfiltered = unfiltered.sort_values(
+    by=["Tenant RITM", "Match Score"], ascending=[True, False]
+)
 
 unfiltered = unfiltered.style.applymap(color_red)
 results_df = results_df.style.applymap(color_red)
-results_df.to_excel(OUTPUT_FILENAME)
-unfiltered.to_excel(UNFILTERED_FILENAME)
+with pd.ExcelWriter(OUTPUT_FILENAME) as writer:
+    results_df.to_excel(writer, sheet_name="Filtered", index=False)
+    unfiltered.to_excel(writer, sheet_name="Unfiltered", index=False)
+
 print(f"{OUTPUT_FILENAME} file created at {CURRENT_DIRECTORY}.")
 print("All done! ♪┏(°.°)┛┗(°.°)┓┗(°.°)┛┏(°.°)┓ ♪")
 # print(time.clock() - start_time, "seconds")
 
 # TODO Make the output filename a command line argument.
+# TODO run again with fillna done correctly
