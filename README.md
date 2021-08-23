@@ -6,9 +6,9 @@
 
 ## Usage
 
-1. git clone
-2. cd ..
-3. pip install -r requirements.txt
+1. `git clone ...`
+2. `cd levenshtein_script`
+3. `pip install -r requirements.txt`
 4. Export the [HP Unmatched report](https://dcerapprod.servicenowservices.com/sys_report_template.do?jvar_report_id=d8c6ed561b1c74109704dd39bc4bcb72) and save it to the root of this folders as `landlords.xlsx`
 5. Export the [Tenant Unmatched report](https://dcerapprod.servicenowservices.com/sys_report_template.do?jvar_report_id=8241d2e41b6434509704dd39bc4bcb4c) and save it to the root of this folders as `tenants.xlsx`
 6. run `python ritm_matcher.py`.
